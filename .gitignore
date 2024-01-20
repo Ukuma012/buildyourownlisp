@@ -1,5 +1,4 @@
-hello_world
 *.o
 *.out
-main
-prompt
+parsing
+hello_world
