@@ -52,7 +52,17 @@ int main(int argc, char** argv) {
 
         add_history(input);
 
-        printf("%s\n", input);
+        mpc_result_t r;
+        if (mpc_parse("<stdin>", input, Lispy, &r)) {
+            /* On Success Print the AST */
+            mpc_ast_print(r.output);
+            mpc_ast_delete(r.output);
+        } else {
+            mpc_err_print(r.error);
+            mpc_err_delete(r.error);
+        }
+
+
 
         free(input);
     }
