@@ -163,6 +163,6 @@ int main(int argc, char** argv) {
         free(input);
     }
 
-    mpc_cleanup(5, Number, Symbol, Operator, Expr, Lispy);
+    mpc_cleanup(5, Number, Symbol, Sexprt, Expr, Lispy);
     return 0;
 }
