@@ -1,4 +1,6 @@
-
+/*
+*   Symbolic Expression
+*/
 
 #include "mpc.h"
 
