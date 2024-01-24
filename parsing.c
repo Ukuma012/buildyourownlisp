@@ -134,6 +134,16 @@ lval* lval_pop(lval* v, int i) {
   v->cell = realloc(v->cell, sizeof(lval*) * v->count);
   return x;
 }
+lval* lval_join(lval* x, lval* y) {
+  /* For each cell in 'y' add it to 'x' */
+  while(y->count) {
+    x = lval_add(x, lval_pop(y, 0));
+  }
+
+  /* Delete the empty 'y' and return 'x' */
+  lval_del(y);
+  return x;
+}
 
 lval* lval_take(lval* v, int i) {
   lval* x = lval_pop(v, i);
@@ -169,6 +179,8 @@ void lval_print(lval* v) {
 }
 
 void lval_println(lval* v) { lval_print(v); putchar('\n'); }
+
+lval* lval_eval(lval* v);
 
 lval* builtin_op(lval* a, char* op) {
   
@@ -216,7 +228,7 @@ lval* builtin_op(lval* a, char* op) {
   return x;
 }
 
-lval* buildin_head(lval* a) {
+lval* builtin_head(lval* a) {
   LASSERT(a, a->count == 1,
   "Function 'head' passed too many arguments!");
 
@@ -237,7 +249,7 @@ lval* buildin_head(lval* a) {
 }
 
 lval* builtin_tail(lval* a) {
-  LASSERT(a, a->count != 1,
+  LASSERT(a, a->count == 1,
   "Function 'tail' passed too many arguments")
 
   LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
@@ -287,18 +299,18 @@ lval* builtin_join(lval* a) {
   return x;
 }
 
-lval* lval_join(lval* x, lval* y) {
-  /* For each cell in 'y' add it to 'x' */
-  while(y->count) {
-    x = lval_add(x, lval_pop(y, 0));
-  }
 
-  /* Delete the empty 'y' and return 'x' */
-  lval_del(y);
-  return x;
+lval* builtin(lval* a, char* func) {
+  if (strcmp("list", func) == 0) { return builtin_list(a); }
+  if (strcmp("head", func) == 0) { return builtin_head(a); }
+  if (strcmp("tail", func) == 0) { return builtin_tail(a); }
+  if (strcmp("join", func) == 0) { return builtin_join(a); }
+  if (strcmp("eval", func) == 0) { return builtin_eval(a); }
+  if (strstr("+-*/", func)) { return builtin_op(a, func); }
+
+  lval_del(a);
+  return lval_err("Unknown Function");
 }
-
-lval* lval_eval(lval* v);
 
 lval* lval_eval_sexpr(lval* v) {
   
@@ -326,7 +338,7 @@ lval* lval_eval_sexpr(lval* v) {
   }
   
   /* Call builtin with operator */
-  lval* result = builtin_op(v, f->sym);
+  lval* result = builtin(v, f->sym);
   lval_del(f);
   return result;
 }
@@ -369,6 +381,8 @@ lval* lval_read(mpc_ast_t* t) {
   
   return x;
 }
+
+
 
 int main(int argc, char** argv) {
   
