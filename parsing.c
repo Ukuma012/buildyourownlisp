@@ -415,6 +415,7 @@ int main(int argc, char** argv) {
     
     mpc_result_t r;
     if (mpc_parse("<stdin>", input, Lispy, &r)) {
+      mpc_ast_print(r.output);
       lval* x = lval_eval(lval_read(r.output));
       lval_println(x);
       lval_del(x);
