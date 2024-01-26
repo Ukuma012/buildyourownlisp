@@ -39,6 +39,7 @@ typedef struct lenv lenv;
 enum { LVAL_ERR, LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR };
 
 typedef lval*(*lbuiltin) (lenv*, lval*);
+// lenv*とlval*を引数にとってlval*を返すlbuiltinはfunction pointer
 
 typedef struct lval {
   int type;
