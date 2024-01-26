@@ -36,7 +36,7 @@ typedef struct lenv lenv;
   if (!(cond)) { lval_del(args); return lval_err(err); }
 
 /* Add SYM and SEXPR as possible lval types */
-enum { LVAL_ERR, LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR };
+enum { LVAL_ERR, LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR, LVAL_FUN };
 
 typedef lval*(*lbuiltin) (lenv*, lval*);
 // lenv*とlval*を引数にとってlval*を返すlbuiltinはfunction pointer
@@ -98,11 +98,19 @@ lval* lval_qexpr(void) {
   return v;
 }
 
+lval* lval_fun(lbuiltin func) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_FUN;
+  v->fun = func;
+  return v;
+}
+
 void lval_del(lval* v) {
 
   switch (v->type) {
     /* Do nothing special for number type */
     case LVAL_NUM: break;
+    case LVAL_FUN: break;
     
     /* For Err or Sym free the string data */
     case LVAL_ERR: free(v->err); break;
@@ -186,6 +194,7 @@ void lval_print(lval* v) {
     case LVAL_SYM:   printf("%s", v->sym); break;
     case LVAL_SEXPR: lval_expr_print(v, '(', ')'); break;
     case LVAL_QEXPR: lval_expr_print(v, '{', '}'); break;
+    case LVAL_FUN:   printf("<function>"); break;
   }
 }
 
