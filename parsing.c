@@ -53,6 +53,12 @@ typedef struct lval {
   struct lval** cell;
 } lval;
 
+struct lenv {
+  int count;
+  char** syms;
+  lval** vals;
+};
+
 
 /* Construct a pointer to a new Number lval */ 
 lval* lval_num(long x) {
@@ -228,7 +234,53 @@ void lval_print(lval* v) {
 
 void lval_println(lval* v) { lval_print(v); putchar('\n'); }
 
-lval* lval_eval(lval* v);
+lval* lval_eval(lenv* e, lval* v);
+
+lenv* lenv_new(void) {
+  lenv* e = malloc(sizeof(lenv));
+  e->count = 0;
+  e->syms = NULL;
+  e->vals = NULL;
+  return e;
+}
+
+void lenv_del(lenv* e) {
+  for (int i = 0; i < e->count; i++) {
+    free(e->syms[i]);
+    lval_del(e->vals[i]);
+  }
+  free(e->syms);
+  free(e->vals);
+  free(e);
+}
+
+lval* lenv_get(lenv*e, lval* k) {
+  for (int i = 0; i < e->count; i++) {
+    if (strcmp(e->syms[i], k->sym) == 0) {
+      return lval_copy(e->vals[i]);
+    }
+  }
+  return lval_err("unbound symbol!");
+}
+
+void lenv_put(lenv* e, lval* k, lval* v) {
+  for(int i = 0; i < e->count; i++) {
+    if(strcmp(e->syms[i], k->sym) == 0) {
+      lval_del(e->vals[i]);
+      e->vals[i] = lval_copy(v);
+      return; 
+    }
+  }
+
+  e->count++;
+  e->vals = realloc(e->vals, sizeof(lval*) * e->count);
+  e->syms = realloc(e->syms, sizeof(char*) * e->count);
+
+  e->vals[e->count-1] = lval_copy(v);
+  e->syms[e->count-1] = malloc(strlen(k->sym)+1);
+  strcpy(e->syms[e->count-1], k->sym);
+}
+
 
 lval* builtin_op(lval* a, char* op) {
   
@@ -360,41 +412,36 @@ lval* builtin(lval* a, char* func) {
   return lval_err("Unknown Function");
 }
 
-lval* lval_eval_sexpr(lval* v) {
-  
-  /* Evaluate Children */
+lval* lval_eval_sexpr(lenv* e, lval* v) {
   for (int i = 0; i < v->count; i++) {
-    v->cell[i] = lval_eval(v->cell[i]);
+    v->cell[i] = lval_eval(e, v->cell[i]);
   }
-  
-  /* Error Checking */
+
   for (int i = 0; i < v->count; i++) {
     if (v->cell[i]->type == LVAL_ERR) { return lval_take(v, i); }
   }
-  
-  /* Empty Expression */
+
   if (v->count == 0) { return v; }
-  
-  /* Single Expression */
   if (v->count == 1) { return lval_take(v, 0); }
-  
-  /* Ensure First Element is Symbol */
+
   lval* f = lval_pop(v, 0);
-  if (f->type != LVAL_SYM) {
-    lval_del(f); lval_del(v);
-    return lval_err("S-expression Does not start with symbol.");
+  if (f->type != LVAL_FUN) {
+    lval_del(v); lval_del(f);
+    return lval_err("first element is not a function");
   }
-  
-  /* Call builtin with operator */
-  lval* result = builtin(v, f->sym);
+
+  lval* result = f->fun(e, v);
   lval_del(f);
   return result;
 }
 
-lval* lval_eval(lval* v) {
-  /* Evaluate Sexpressions */
-  if (v->type == LVAL_SEXPR) { return lval_eval_sexpr(v); }
-  /* All other lval types remain the same */
+lval* lval_eval(lenv* e, lval* v) {
+  if (v->type == LVAL_SYM) {
+    lval* x = lenv_get(e, v);
+    lval_del(v);
+    return x;
+  }
+  if (v->type == LVAL_SEXPR) {return lval_eval_sexpr(e, v);}
   return v;
 }
 
